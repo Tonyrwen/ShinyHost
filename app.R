@@ -29,6 +29,31 @@ player_stats_model = player_stats_mod  %>%
                       .[11:ncol(player_stats_mod)] %>% 
                       FA(nfactors = 4, rotate = "promax")
 
+player_stats_model$Structure %>% add_rownames(var = "From") %>%
+  mutate(prime_factor = case_when(pmax(abs(F1), abs(F2), abs(F3), abs(F4)) == abs(F1) ~ "F1",
+                                  pmax(abs(F1), abs(F2), abs(F3), abs(F4)) == abs(F2) ~ "F2",
+                                  pmax(abs(F1), abs(F2), abs(F3), abs(F4)) == abs(F3) ~ "F3",
+                                  pmax(abs(F1), abs(F2), abs(F3), abs(F4)) == abs(F4) ~ "F4")) %>%
+  gather("To", "Weight", 2:5)%>%
+  #reorder
+  select(From, To, Weight, prime_factor) %>%
+  mutate(edgeCol = case_when(To == "F1" ~ "red",
+                             To == "F2" ~ "orange",
+                             To == "F3" ~ "green",
+                             To == "F4" ~ "blue"))-> pstats_from_to
+
+pstats_from_to %>% select("From") %>% unique() %>%
+  left_join(pstats_from_to, by = "From") %>%
+  mutate(color = case_when(prime_factor == "F1" ~ "red",
+                           prime_factor == "F2" ~ "orange",
+                           prime_factor == "F3" ~ "green",
+                           prime_factor == "F4" ~ "blue"),
+         size = ifelse(prime_factor %in% c("F1", "F2", "F3", "F4"), 10, 5)) %>%
+  select(From, color, size, prime_factor)%>% 
+  rbind(tibble(From = c("F1", "F2", "F3", "F4"),
+               color = c("red", "orange", "green", "blue"),
+               size = c(10, 10, 10, 10),
+               prime_factor = c("F1", "F2", "F3", "F4"))) %>% unique() -> pstats_node 
 
 #build a shiny app for all three visual breakdown of the factors
 ui = fluidPage(
